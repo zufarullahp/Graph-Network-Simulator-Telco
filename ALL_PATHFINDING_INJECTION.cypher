@@ -1,46 +1,65 @@
-// ONLY RUN THIS ONCE FOR DATA INGESTION
-// CREATE PF
+
+== ALL PATHFINDING INJECTION
+ONLY RUN THIS ONCE FOR DATA INGESTION IN PART 1 
+
+== CREATE PF
+[source,cypher]
+----
 MATCH (a)-[r:LINKS]->(b)
 WHERE a<>b
 MERGE (a)-[rr:PF]->(b)
 SET rr = properties(r)
-;
+----
 
+[source,cypher]
+----
 MATCH (a)-[r:LINKS]->(b)
 WHERE a<>b
 MERGE (a)<-[rr:PF]-(b)
 SET rr = properties(r)
-;
+----
 
+[source,cypher]
+----
 MATCH ()-[r:PF]->()
-set r.costLink = toInteger(r.costLink);
+set r.costLink = toInteger(r.costLink)
+----
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// START PROCESS PATHFINDING (WITHOUT OCCUPANCY)
+== START PROCESS PATHFINDING (WITHOUT OCCUPANCY)
 
-// REMOVE TIERS
+REMOVE TIERS
+[source,cypher]
+----
 MATCH (n:ME)
 REMOVE n:TIER1, n:TIER2, n:TIER3
-;
+----
 
-// Create TIER1 Label
+Create TIER1 Label
+[source,cypher]
+----
 MATCH (a:ME)-[r:PF]-(b:BRAS)
 SET a:TIER1
-;
+----
 
-// CREATE TIER2 LABEL
+CREATE TIER2 LABEL
+[source,cypher]
+----
 MATCH (a:ME)-[:PF]-(:TIER1)
 WHERE not a:TIER1
 SET a:TIER2
-;
+----
 
-// CREATE TIER3 LABEL
+CREATE TIER3 LABEL
+[source,cypher]
+----
 MATCH p=(n:ME)
 WHERE none(a in nodes(p) WHERE a:TIER1 or a:TIER2)
 SET n:TIER3
-;
+----
 
-// UL DEST1, FAST QUERY, DIRECTED ()
+== UL DEST1, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_UP)
   WITH a
@@ -77,9 +96,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops;
+SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
+----
 
-// UL DEST2, FAST QUERY, DIRECTED ()
+== UL DEST2, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_UP)
   WITH a
@@ -105,9 +127,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// UL PREPARE DL REG
+== UL PREPARE DL REG
+[source,cypher]
+----
 MATCH (a:TRAFFIC_UP)
 SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2),
   a.reg=last(a.dest1),
@@ -116,9 +141,12 @@ SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)
 WITH a
 MATCH (m:TRAFFIC_DOWN {targetReal: a.sourceReal})
 WITH m,a
-SET m.reg=a.reg, m.reg1=a.reg1;
+SET m.reg=a.reg, m.reg1=a.reg1
+----
 
-// DL DEST1, FAST QUERY, DIRECTED ()
+== DL DEST1, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -151,9 +179,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops;
+SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
+----
 
-// DL DEST2, FAST QUERY, DIRECTED () - SECOND - ME9
+== DL DEST2, FAST QUERY, DIRECTED () - SECOND - ME9
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -199,9 +230,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// DL DEST2, FAST QUERY, DIRECTED () - SECOND
+== DL DEST2, FAST QUERY, DIRECTED () - SECOND
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -247,21 +281,23 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// DL DEST, COST, HOP
+== DL DEST, COST, HOP
+[source,cypher]
+----
 MATCH (a:TRAFFIC_DOWN)
-SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2);
+SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2)
+----
 
-// END OF COMPLETE PATHFINDING QUERIES
-////////////////////////////////////////////////////////////////////////////////////////////////////////
+END OF COMPLETE PATHFINDING QUERIES
 
+== START COMPLETE TRAFFIC INJECTION
 
-
-// START COMPLETE TRAFFIC INJECTION
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// UL
+SET UL
+[source,cypher]
+----
 MATCH (n)-[r:PF]-(m)
 SET r.packet_loss_uplink = 0, r.uplink = 0,
   r.packet_loss_downlink = 0, r.downlink = 0,
@@ -272,10 +308,17 @@ SET r.packet_loss_uplink = 0, r.uplink = 0,
   r.occupancy_uplink = 0, r.occupancy_downlink = 0, r.total_uplink = 0, r.nb_traffic_uplink = 0,
   r.packet_success_uplink = 0, r.packet_success_downlink = 0
   , r.occupancy_downlink = 0, r.occupancy_uplink = 0
-  ;
-  
-MATCH ()-[r:UPLINK]-() delete r;
+----
 
+Check UL
+[source,cypher]
+----
+MATCH ()-[r:UPLINK]-() delete r
+----
+
+== UL UPLINK
+[source,cypher]
+----
 MATCH (a:TRAFFIC_UP)
 WITH a ORDER BY a.pri asc
 //WITH a ORDER BY id(a) asc
@@ -317,9 +360,11 @@ FOREACH (i in range(0, size(allPFs) - 1) | foreach( r in [allPFs[i]] |
  SET r.packet_success_uplink=toFloat(r.retail_uplink+r.ebis_uplink+r.mobile_uplink+r.wholesale_uplink),
  r.packet_loss_uplink = apoc.coll.max([0, r.total_uplink - r.uplink]),
  r.occupancy_uplink = round(toFloat(r.uplink/r.cap),3)))
- ;
+----
 
-// DL
+== DL
+[source,cypher]
+----
 MATCH ()-[r:DOWNLINK]-() delete r;
 MATCH (a:TRAFFIC_DOWN)
 WITH a ORDER BY a.pri asc
@@ -362,8 +407,11 @@ FOREACH (i in range(0, size(allPFs) - 1) | foreach( r in [allPFs[i]] |
  SET r.packet_success_downlink=toFloat(r.retail_downlink+r.ebis_downlink+r.mobile_downlink+r.wholesale_downlink),
  r.packet_loss_downlink = apoc.coll.max([0, r.total_downlink - r.downlink]),
  r.occupancy_downlink = round(toFloat(r.downlink/r.cap),3)))
- ;
+----
 
+== SET PF
+[source,cypher]
+----
 MATCH ()-[r:PF]-()
 SET 
 r.packet_loss_uplink=round(r.packet_loss_uplink, 4)
@@ -380,9 +428,11 @@ r.packet_loss_uplink=round(r.packet_loss_uplink, 4)
 , r.downlink=round(r.downlink, 4)
 , r.packet_success_uplink=round(r.packet_success_uplink, 4)
 , r.packet_success_downlink=round(r.packet_success_downlink, 4)
-;
+----
 
-// RESET LINKS VALUE
+== RESET LINKS VALUE
+[source,cypher]
+----
 match p= ()-[r:LINKS]->()
 set
 r.uplink=round(toFloat(0),5),
@@ -401,8 +451,10 @@ r.packet_loss_uplink=round(toFloat(0),5),
 r.packet_loss_downlink=round(toFloat(0),5),
 r.packet_success_uplink=round(toFloat(0),5),
 r.packet_success_downlink=round(toFloat(0),5)
-;
+----
 
+[source,cypher]
+----
 MATCH (a)-[r:PF]->(b),(a)-[rr:LINKS]-(b)
 WHERE r.downlink > 0
     SET
@@ -414,8 +466,10 @@ WHERE r.downlink > 0
     , rr.mobile_downlink=r.mobile_downlink
     , rr.wholesale_downlink=r.wholesale_downlink
     , rr.occupancy_downlink=r.occupancy_downlink
-    ;
+----
 
+[source,cypher]
+----
 MATCH (a)-[r:PF]->(b),(a)-[rr:LINKS]-(b)
 WHERE r.uplink > 0
     SET
@@ -427,39 +481,45 @@ WHERE r.uplink > 0
     , rr.mobile_uplink=r.mobile_uplink
     , rr.wholesale_uplink=r.wholesale_uplink
     , rr.occupancy_uplink=r.occupancy_uplink
-    ;
+----
     
- // END OF COMPLETE TRAFFIC INJECTION
- ///////////////////////////////////////////////////////////////////////////////////////////////////////
+END OF COMPLETE TRAFFIC INJECTION
 
+== START PROCESS PATHFINDING (WITH OCCUPANCY)
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// START PROCESS PATHFINDING (WITH OCCUPANCY)
-
-// REMOVE TIERS
+REMOVE TIERS
+[source,cypher]
+----
 MATCH (n:ME)
 REMOVE n:TIER1, n:TIER2, n:TIER3
-;
+----
 
-// Create TIER1 Label
+Create TIER1 Label
+[source,cypher]
+----
 MATCH (a:ME)-[r:PF]-(b:BRAS)
 SET a:TIER1
-;
+----
 
-// CREATE TIER2 LABEL
+CREATE TIER2 LABEL
+[source,cypher]
+----
 MATCH (a:ME)-[:PF]-(:TIER1)
 WHERE not a:TIER1
 SET a:TIER2
-;
+----
 
-// CREATE TIER3 LABEL
+CREATE TIER3 LABEL
+[source,cypher]
+----
 MATCH p=(n:ME)
 WHERE none(a in nodes(p) WHERE a:TIER1 or a:TIER2)
 SET n:TIER3
-;
+----
 
-// UL DEST1, FAST QUERY, DIRECTED ()
+== UL DEST1, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_UP)
   WITH a
@@ -497,9 +557,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops;
+SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
+----
 
-// UL DEST2, FAST QUERY, DIRECTED ()
+== UL DEST2, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_UP)
   WITH a
@@ -526,9 +589,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// UL PREPARE DL REG
+== UL PREPARE DL REG
+[source,cypher]
+----
 MATCH (a:TRAFFIC_UP)
 SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2),
   a.reg=last(a.dest1),
@@ -537,9 +603,12 @@ SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)
 WITH a
 MATCH (m:TRAFFIC_DOWN {targetReal: a.sourceReal})
 WITH m,a
-SET m.reg=a.reg, m.reg1=a.reg1;
+SET m.reg=a.reg, m.reg1=a.reg1
+----
 
-// DL DEST1, FAST QUERY, DIRECTED ()
+== DL DEST1, FAST QUERY, DIRECTED ()
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -573,9 +642,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops;
+SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
+----
 
-// DL DEST2, FAST QUERY, DIRECTED () - SECOND - ME9
+== DL DEST2, FAST QUERY, DIRECTED () - SECOND - ME9
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -622,9 +694,12 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// DL DEST2, FAST QUERY, DIRECTED () - SECOND
+== DL DEST2, FAST QUERY, DIRECTED () - SECOND
+[source,cypher]
+----
 CALL {
   MATCH (a:TRAFFIC_DOWN)
   WITH a
@@ -671,11 +746,15 @@ CALL {
   ORDER BY Source, Target
 }
 WITH a, nodesName, Costs, Hops
-SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops;
+SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
+----
 
-// DL DEST, COST, HOP
+== DL DEST, COST, HOP
+[source,cypher]
+----
 MATCH (a:TRAFFIC_DOWN)
-SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2);
+SET a.dest = (a.dest1)+tail(a.dest2), a.cost=(a.cost1)+(a.cost2), a.hop=(a.hop1)+(a.hop2)
+----
 
-// END OF COMPLETE PATHFINDING QUERIES
-////////////////////////////////////////////////////////////////////////////////////////////////////////
+END OF COMPLETE PATHFINDING QUERIES
+
