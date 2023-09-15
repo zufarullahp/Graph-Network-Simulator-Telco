@@ -58,6 +58,9 @@ SET n:TIER3
 ----
 
 == UL DEST1, FAST QUERY, DIRECTED ()
+if got this result 
+Set 9207 properties, completed after 55079 ms. 
+then valid 
 [source,cypher]
 ----
 CALL {
@@ -100,6 +103,10 @@ SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
 ----
 
 == UL DEST2, FAST QUERY, DIRECTED ()
+if got this result 
+Set 9207 properties, completed after 4015 ms
+then valid 
+
 [source,cypher]
 ----
 CALL {
@@ -131,6 +138,9 @@ SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
 ----
 
 == UL PREPARE DL REG
+
+create a bridge as property for downlink 
+
 [source,cypher]
 ----
 MATCH (a:TRAFFIC_UP)
@@ -182,7 +192,10 @@ WITH a, nodesName, Costs, Hops
 SET a.dest1=nodesName, a.cost1=Costs, a.hop1=Hops
 ----
 
-== DL DEST2, FAST QUERY, DIRECTED () - SECOND - ME9
+== DL DEST2, FAST QUERY, DIRECTED () - FIRST - ME9 
+
+Set 4158 properties, completed after 26439 ms.
+
 [source,cypher]
 ----
 CALL {
@@ -234,6 +247,12 @@ SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
 ----
 
 == DL DEST2, FAST QUERY, DIRECTED () - SECOND
+
+Set 5049 properties, completed after 160264 ms.
+from previous query result  4158
+4158 + 5049 = 9,207 
+THEN VALID 
+
 [source,cypher]
 ----
 CALL {
@@ -310,13 +329,13 @@ SET r.packet_loss_uplink = 0, r.uplink = 0,
   , r.occupancy_downlink = 0, r.occupancy_uplink = 0
 ----
 
-Check UL
+dispose uplink traffic
 [source,cypher]
 ----
 MATCH ()-[r:UPLINK]-() delete r
 ----
 
-== UL UPLINK
+== UPLINK
 [source,cypher]
 ----
 MATCH (a:TRAFFIC_UP)
@@ -362,10 +381,16 @@ FOREACH (i in range(0, size(allPFs) - 1) | foreach( r in [allPFs[i]] |
  r.occupancy_uplink = round(toFloat(r.uplink/r.cap),3)))
 ----
 
-== DL
+== Downlink
+
+dispose traffic downlink
 [source,cypher]
 ----
 MATCH ()-[r:DOWNLINK]-() delete r;
+----
+
+[source,cypher]
+----
 MATCH (a:TRAFFIC_DOWN)
 WITH a ORDER BY a.pri asc
 //WITH a ORDER BY id(a) asc
@@ -606,7 +631,7 @@ WITH m,a
 SET m.reg=a.reg, m.reg1=a.reg1
 ----
 
-== DL DEST1, FAST QUERY, DIRECTED ()
+== DL DEST1, FAST QUERY, DIRECTED () FIRST
 [source,cypher]
 ----
 CALL {
@@ -697,7 +722,7 @@ WITH a, nodesName, Costs, Hops
 SET a.dest2=nodesName, a.cost2=Costs, a.hop2=Hops
 ----
 
-== DL DEST2, FAST QUERY, DIRECTED () - SECOND
+== DL DEST2, FAST QUERY, DIRECTED () - THIRD
 [source,cypher]
 ----
 CALL {
